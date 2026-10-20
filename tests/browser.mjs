@@ -80,6 +80,9 @@ try {
   assert.match((await download).suggestedFilename(),/^ponto-backup-.*\.json$/);checks++;
   await page.setViewportSize({width:390,height:844});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+  await page.locator('#mobileSettings').click();
+  await page.locator('#settingsDialog').waitFor({state:'visible'});
+  await page.locator('#settingsDialog [data-close]').click();
   await page.screenshot({path:path.join(output,'mobile.png'),fullPage:true});checks++;
   await page.setViewportSize({width:1440,height:1100});
   await page.locator('#settingsButton').click();await page.locator('#logoutButton').click();await page.locator('#loginForm').waitFor({state:'visible'});

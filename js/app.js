@@ -235,6 +235,7 @@ $('#settingsButton').addEventListener('click',()=>{
   $('#accountEmail').textContent=state.demo?'Conta de demonstração':state.user.email;
   message('#settingsMessage','');$('#settingsDialog').showModal();
 });
+$('#mobileSettings').addEventListener('click',()=>$('#settingsButton').click());
 $('#settingsForm').addEventListener('submit',event=>{
   event.preventDefault();const form=event.currentTarget;
   const name=form.elements.name.value.trim(),pin=form.elements.pin.value,confirmation=form.elements.confirmation.value;

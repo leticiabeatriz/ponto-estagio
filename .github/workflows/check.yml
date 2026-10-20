@@ -18,3 +18,22 @@ jobs:
           for file in js/*.js; do
             node --check "$file"
           done
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Instalar ferramenta de teste com versão fixa
+        run: npm install --no-save --package-lock=false playwright@1.62.1
+      - name: Instalar navegador
+        run: npx playwright install --with-deps chromium
+      - name: Verificar fluxos da interface com banco simulado
+        run: npm run test:browser
+      - name: Guardar capturas da interface
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: interface-ponto
+          path: test-results/
