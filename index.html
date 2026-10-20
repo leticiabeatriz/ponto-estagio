@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#173e35">
+  <meta name="description" content="Seu estágio, no seu ritmo. Organize registros e acompanhe seu banco de horas.">
+  <title>Ponto · Seu tempo, organizado</title>
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+  <svg class="svg-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 11h18m-13 4h2m4 0h2m-8 3h2"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></symbol>
+    <symbol id="i-trend" viewBox="0 0 24 24"><path d="m3 17 6-6 4 4 8-10m-6 0h6v6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 16v4h16v-4"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 15V3m-5 5 5-5 5 5M4 16v4h16v-4"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="m15 5 4 4M4 20l5-1L20 8a3 3 0 0 0-4-4L5 15z"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m8 5 7 7-7 7"/></symbol>
+    <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 4H4v16h5m0-8h12m-5-5 5 5-5 5"/></symbol>
+  </defs></svg>
+
+  <main id="accessView" class="access-page">
+    <section class="access-story">
+      <a class="brand" href="./"><span class="brand-icon"><svg><use href="#i-clock"/></svg></span><span>ponto<span class="brand-dot">.</span></span></a>
+      <div class="access-intro"><p class="eyebrow">MENOS CONTAS. MAIS CLAREZA.</p><h1>Seu tempo<br>merece cuidado.</h1><p>Registre sua jornada, acompanhe seu saldo e deixe as horas em ordem.</p><div class="story-line"><span></span><small>Um registro de cada vez.</small></div></div>
+      <small class="access-foot">Feito para acompanhar seu estágio.</small>
+    </section>
+    <section class="access-form-wrap">
+      <div class="access-card">
+        <div class="access-symbol"><svg><use href="#i-lock"/></svg></div>
+        <p class="eyebrow">SEU ESPAÇO DE TRABALHO</p>
+        <h2 id="accessTitle">Bem-vinda de volta.</h2>
+        <p id="accessCopy" class="muted">Entre com a sua conta para continuar.</p>
+        <form id="loginForm" hidden>
+          <label>E-mail<input name="email" type="email" autocomplete="username" required placeholder="seu@email.com"></label>
+          <label>Senha<input name="password" type="password" autocomplete="current-password" required placeholder="Sua senha"></label>
+          <button class="button primary full" type="submit">Entrar <svg><use href="#i-arrow"/></svg></button>
+          <button type="button" class="text-button" id="forgotPassword">Esqueci minha senha</button>
+        </form>
+        <form id="pinForm" hidden>
+          <label id="pinLabel">PIN de acesso<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" minlength="4" autocomplete="off" class="pin-input" required placeholder="••••"></label>
+          <label id="confirmPinLabel" hidden>Confirme seu PIN<input name="confirmation" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" class="pin-input"></label>
+          <button class="button primary full" id="pinSubmit" type="submit">Desbloquear <svg><use href="#i-arrow"/></svg></button>
+          <button type="button" class="text-button" id="pinLogout">Usar e-mail e senha / redefinir PIN</button>
+          <small class="muted">O PIN bloqueia a interface neste dispositivo. A conta protege seus dados no banco.</small>
+        </form>
+        <form id="recoveryForm" hidden>
+          <label>Nova senha<input name="password" type="password" autocomplete="new-password" minlength="8" required></label>
+          <label>Repita a nova senha<input name="confirmation" type="password" autocomplete="new-password" minlength="8" required></label>
+          <button class="button primary full" type="submit">Salvar nova senha</button>
+        </form>
+        <p id="accessMessage" role="status" aria-live="polite">Verificando conexão…</p>
+        <div class="access-bottom"><span>Quer conhecer primeiro?</span><button id="demoButton" class="text-button" type="button">Explorar demonstração <span aria-hidden="true">↗</span></button></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="appView" class="app-shell" hidden>
+    <aside class="sidebar">
+      <a class="brand" href="./"><span class="brand-icon"><svg><use href="#i-clock"/></svg></span><span>ponto<span class="brand-dot">.</span></span></a>
+      <div class="workspace-label">MEU ESTÁGIO</div>
+      <nav aria-label="Navegação principal">
+        <a href="#overview" class="nav-item active"><svg><use href="#i-grid"/></svg>Visão geral<span class="nav-active-dot"></span></a>
+        <a href="#history" class="nav-item"><svg><use href="#i-calendar"/></svg>Meus registros</a>
+        <button class="nav-item" id="settingsButton"><svg><use href="#i-settings"/></svg>Preferências</button>
+      </nav>
+      <div class="sidebar-tip"><span class="tip-icon">✳</span><strong>Cada hora conta.</strong><p>Um pouquinho de organização hoje. Mais tranquilidade amanhã.</p><span class="tip-line"></span></div>
+      <div class="sidebar-bottom"><span class="secure-label"><span class="online-dot"></span><span id="connectionLabel">Dados na nuvem</span></span><div class="profile-mini"><span class="avatar" id="avatar">P</span><div><strong id="profileName">Meu ponto</strong><small>Conta pessoal</small></div><button id="lockButton" class="icon-button" aria-label="Bloquear aplicativo" title="Bloquear"><svg><use href="#i-lock"/></svg></button></div></div>
+    </aside>
+    <div class="main-column">
+      <header class="topbar"><div class="breadcrumb">Meu espaço <span>/</span> <strong>Visão geral</strong></div><div class="topbar-right"><span id="todayLabel"></span><button id="mobileLock" class="icon-button" aria-label="Bloquear aplicativo"><svg><use href="#i-lock"/></svg></button></div></header>
+      <div id="demoBanner" class="demo-banner" hidden>Demonstração · os registros são exemplos e não são enviados ao banco.<button id="exitDemo" class="text-button">Sair da demonstração</button></div>
+      <main id="overview" class="dashboard">
+        <div class="page-heading"><div><p class="eyebrow">SEU TEMPO, ORGANIZADO</p><h1 id="greeting">Olá! Vamos acompanhar suas horas?</h1><p class="muted">Um lugar para cuidar da sua jornada.</p></div><button id="addButton" class="button primary"><svg><use href="#i-plus"/></svg>Novo registro</button></div>
+        <section class="overview-grid" aria-label="Resumo de horas">
+          <article class="balance-card"><div class="card-top"><span>Seu banco de horas</span><svg><use href="#i-trend"/></svg></div><strong id="totalBalance" class="big-number">0h00</strong><span class="balance-badge" id="balanceBadge">Tudo em dia</span><div class="balance-divider"></div><p>Seu saldo acumulado, desde o primeiro registro.</p><span class="balance-decoration" aria-hidden="true"></span></article>
+          <article class="metric-card"><span class="metric-icon teal"><svg><use href="#i-clock"/></svg></span><p>Horas no período</p><strong id="periodWorked">0h00</strong><small id="periodWorkedNote">Nenhum registro ainda</small></article>
+          <article class="metric-card"><span class="metric-icon orange"><svg><use href="#i-calendar"/></svg></span><p>Dias registrados</p><strong id="periodDays">0 <span>dias</span></strong><small>Somente dias com entradas</small></article>
+          <article class="metric-card"><span class="metric-icon purple"><svg><use href="#i-trend"/></svg></span><p>Saldo no período</p><strong id="periodBalance">0h00</strong><small>Trabalhado menos jornada prevista</small></article>
+        </section>
+        <section class="middle-grid">
+          <article class="panel week-panel"><div class="panel-heading"><div><h2>Sua semana em horas</h2><p id="weekRange" class="muted"></p></div><span class="tag">Semana atual</span></div><div id="weekChart" class="week-chart" role="img" aria-label="Horas trabalhadas por dia da semana"></div><div class="chart-footer"><span><i></i> Horas trabalhadas</span><span><i class="dashed"></i> Referência: 5h nos dias úteis</span></div></article>
+          <article class="panel journey-panel"><span class="eyebrow">NO SEU RITMO</span><h2>Uma jornada<br>mais leve.</h2><p>Registre seus horários e acompanhe o que já conquistou.</p><div class="journey-rule"><span class="metric-icon"><svg><use href="#i-check"/></svg></span><div><strong>5h por dia útil registrado</strong><small>Dias sem registro não descontam horas. Fins de semana somam como extra.</small></div></div></article>
+        </section>
+        <section id="history" class="history-section">
+          <div class="history-heading"><div><h2>Meus registros <span id="entriesCount" class="count-badge">0</span></h2><p class="muted">Sua jornada, semana a semana.</p></div><div class="history-actions"><button id="importButton" class="button secondary"><svg><use href="#i-up"/></svg>Importar</button><button id="exportButton" class="button secondary"><svg><use href="#i-down"/></svg>Exportar</button></div></div>
+          <div class="filter-bar"><div class="filter-main"><svg><use href="#i-calendar"/></svg><label class="sr-only" for="periodSelect">Período dos registros</label><select id="periodSelect"><option value="month">Este mês</option><option value="week">Esta semana</option><option value="all">Todo o período</option><option value="custom">Escolher período</option></select></div><div id="customDates" class="custom-dates" hidden><label>De<input type="date" id="fromDate"></label><label>Até<input type="date" id="toDate"></label></div><span id="filterSummary" class="muted"></span><button id="refreshButton" class="text-button">Atualizar</button></div>
+          <div id="weeksContainer"></div>
+        </section>
+        <footer class="page-footer"><span>ponto. <span class="muted">Um registro de cada vez.</span></span><span id="saveStatus" role="status"><span class="online-dot"></span>Todos os registros salvos</span></footer>
+      </main>
+    </div>
+  </div>
+
+  <dialog id="entryDialog"><form id="entryForm"><div class="modal-heading"><div><p class="eyebrow">SUA JORNADA</p><h2 id="entryTitle">Novo registro</h2></div><button type="button" class="icon-button" data-close aria-label="Fechar"><svg><use href="#i-close"/></svg></button></div><label>Data<input type="date" name="date" required min="1900-01-01" max="2200-12-31"></label><div class="form-row"><label>Entrada<input type="time" name="start" required step="60" value="13:00"></label><label>Saída<input type="time" name="end" required step="60" value="18:00"></label></div><label>Observação <span class="muted">(opcional)</span><input name="note" maxlength="200" placeholder="Ex.: visita técnica, trabalho remoto…"></label><div id="durationPreview" class="preview-note">5h00 de trabalho</div><p class="form-error" id="entryMessage" role="alert"></p><div class="modal-actions"><button type="button" class="button secondary" data-close>Cancelar</button><button type="submit" class="button primary">Salvar registro</button></div></form></dialog>
+  <dialog id="deleteDialog"><form id="deleteForm"><div class="modal-heading"><h2>Excluir registro?</h2><button type="button" class="icon-button" data-close aria-label="Fechar"><svg><use href="#i-close"/></svg></button></div><p id="deleteDescription"></p><p class="muted">Essa entrada será removida do seu banco de horas.</p><p id="deleteMessage" class="form-error" role="alert"></p><div class="modal-actions"><button type="button" class="button secondary" data-close>Cancelar</button><button type="submit" class="button danger">Excluir registro</button></div></form></dialog>
+  <dialog id="settingsDialog"><form id="settingsForm"><div class="modal-heading"><div><p class="eyebrow">DO SEU JEITO</p><h2>Preferências</h2></div><button type="button" class="icon-button" data-close aria-label="Fechar"><svg><use href="#i-close"/></svg></button></div><label>Como podemos chamar você?<input name="name" maxlength="80" placeholder="Seu nome"></label><p class="muted" id="accountEmail"></p><label>Novo PIN <span class="muted">(opcional)</span><input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="new-password" placeholder="4 dígitos"></label><label>Confirme o novo PIN<input name="confirmation" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"></label><p class="muted small">O PIN é próprio do Ponto. Alterá-lo não muda o PIN do Meu Celeiro.</p><p id="settingsMessage" class="form-error" role="alert"></p><div class="modal-actions"><button type="button" id="logoutButton" class="text-button">Sair da conta</button><button type="submit" class="button primary">Salvar preferências</button></div></form></dialog>
+  <dialog id="importDialog"><form id="importForm"><div class="modal-heading"><h2>Trazer meus registros</h2><button type="button" class="icon-button" data-close aria-label="Fechar"><svg><use href="#i-close"/></svg></button></div><p class="muted">Escolha o <strong>db.json</strong> do programa antigo ou um backup do Ponto. Os registros atuais serão mantidos e duplicados serão ignorados.</p><label>Arquivo JSON<input type="file" name="file" accept=".json,application/json" required></label><p id="importMessage" role="status"></p><div class="modal-actions"><button type="button" class="button secondary" data-close>Cancelar</button><button class="button primary" type="submit">Importar registros</button></div></form></dialog>
+  <dialog id="exportDialog"><div class="modal-heading"><h2>Levar meus registros</h2><button type="button" class="icon-button" data-close aria-label="Fechar"><svg><use href="#i-close"/></svg></button></div><p class="muted">O backup inclui todos os seus registros. A planilha usa o período selecionado.</p><div class="export-options"><button id="exportJson" class="button secondary"><svg><use href="#i-down"/></svg>Backup completo (.json)</button><button id="exportCsv" class="button secondary"><svg><use href="#i-down"/></svg>Planilha do período (.csv)</button></div></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
