@@ -48,6 +48,16 @@ do $$ declare affected integer; begin
   get diagnostics affected = row_count;
   if affected<>0 then raise exception 'RLS permitiu excluir outra conta'; end if;
 end $$;
+set local request.jwt.claim.is_anonymous = 'true';
+do $$ begin
+  if (select count(*) from public.ponto_entries)<>0 then raise exception 'Sessão anônima autenticada conseguiu ler entradas'; end if;
+  if (select count(*) from public.ponto_profiles)<>0 then raise exception 'Sessão anônima autenticada conseguiu ler perfis'; end if;
+  begin
+    insert into public.ponto_entries(user_id,work_date,start_time,end_time) values (auth.uid(),'2026-10-19','19:00','20:00');
+    raise exception 'Sessão anônima autenticada conseguiu gravar entrada';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
 set local role anon;
 do $$ begin
   begin

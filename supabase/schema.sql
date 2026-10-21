@@ -44,11 +44,11 @@ alter table public.ponto_entries enable row level security;
 revoke all on public.ponto_profiles, public.ponto_entries from anon;
 grant select,insert,update,delete on public.ponto_profiles, public.ponto_entries to authenticated;
 
-create policy ponto_profiles_select on public.ponto_profiles for select to authenticated using (user_id = (select auth.uid()));
-create policy ponto_profiles_insert on public.ponto_profiles for insert to authenticated with check (user_id = (select auth.uid()));
-create policy ponto_profiles_update on public.ponto_profiles for update to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
-create policy ponto_entries_select on public.ponto_entries for select to authenticated using (user_id = (select auth.uid()));
-create policy ponto_entries_insert on public.ponto_entries for insert to authenticated with check (user_id = (select auth.uid()));
-create policy ponto_entries_update on public.ponto_entries for update to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
-create policy ponto_entries_delete on public.ponto_entries for delete to authenticated using (user_id = (select auth.uid()));
+create policy ponto_profiles_select on public.ponto_profiles for select to authenticated using (user_id = (select auth.uid()) and not (select coalesce((auth.jwt()->>'is_anonymous')::boolean, false)));
+create policy ponto_profiles_insert on public.ponto_profiles for insert to authenticated with check (user_id = (select auth.uid()) and not (select coalesce((auth.jwt()->>'is_anonymous')::boolean, false)));
+create policy ponto_profiles_update on public.ponto_profiles for update to authenticated using (user_id = (select auth.uid()) and not (select coalesce((auth.jwt()->>'is_anonymous')::boolean, false))) with check (user_id = (select auth.uid()) and not (select coalesce((auth.jwt()->>'is_anonymous')::boolean, false)));
+create policy ponto_entries_select on public.ponto_entries for select to authenticated using (user_id = (select auth.uid()) and not (select coalesce((auth.jwt()->>'is_anonymous')::boolean, false)));
+create policy ponto_entries_insert on public.ponto_entries for insert to authenticated with check (user_id = (select auth.uid()) and not (select coalesce((auth.jwt()->>'is_anonymous')::boolean, false)));
+create policy ponto_entries_update on public.ponto_entries for update to authenticated using (user_id = (select auth.uid()) and not (select coalesce((auth.jwt()->>'is_anonymous')::boolean, false))) with check (user_id = (select auth.uid()) and not (select coalesce((auth.jwt()->>'is_anonymous')::boolean, false)));
+create policy ponto_entries_delete on public.ponto_entries for delete to authenticated using (user_id = (select auth.uid()) and not (select coalesce((auth.jwt()->>'is_anonymous')::boolean, false)));
 commit;

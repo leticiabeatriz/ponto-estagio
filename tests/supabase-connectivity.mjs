@@ -12,4 +12,4 @@ for (const path of ['/auth/v1/health','/auth/v1/settings','/rest/v1/ponto_profil
   }catch(error){results.push({path,error:error.name});}
 }
 console.log(JSON.stringify({project:config.url,results},null,2));
-if(results.some(r=>r.error||r.status>=500))process.exitCode=1;
+if(results.some(r=>r.error||r.status>=500||r.tablePresent===false||(!r.path.includes('/rest/')&&r.status!==200)))process.exitCode=1;

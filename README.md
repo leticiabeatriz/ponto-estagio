@@ -19,11 +19,11 @@ O SDK oficial do Supabase é carregado por URL com versão fixa `2.118.0`. Login
 
 O arquivo `js/config.js` aponta para o projeto existente **Meu celeiro**. O Ponto usa as mesmas contas de e-mail e senha, com sessão própria no navegador (`ponto-pp-auth`). As tabelas `ponto_profiles` e `ponto_entries` são exclusivas do Ponto; as tabelas e o PIN do Meu Celeiro não são alterados. O PIN do Ponto é escolhido no primeiro acesso.
 
-**Configuração remota ainda não confirmada:** as consultas ao Supabase expiraram no ambiente de desenvolvimento. O esquema está preparado em `supabase/schema.sql`, mas sua aplicação e o fluxo real de login/gravação precisam ser confirmados antes de considerar o aplicativo pronto para uso em produção.
+**Banco configurado e verificado em 21/10/2026:** as tabelas do Ponto foram criadas no projeto existente, com RLS por proprietário e bloqueio de sessões anônimas. Uma transação administrativa no banco real verificou criar, ler, editar, excluir, rejeitar sobreposição e isolar contas; todos os dados temporários foram desfeitos no final. O endpoint de autenticação respondeu normalmente, com login por e-mail habilitado. A senha pessoal da conta não foi solicitada nem usada nos testes.
 
-Para configurar:
+O projeto atual já está configurado. Para instalar em outro projeto:
 
-1. No SQL Editor do projeto Supabase correto, verifique se `ponto_profiles` e `ponto_entries` já existem. Execute `supabase/schema.sql` uma única vez se ainda não existirem. A transação cria tabelas, índices, restrições e políticas RLS.
+1. No SQL Editor do novo projeto Supabase, verifique se `ponto_profiles` e `ponto_entries` já existem. Execute `supabase/schema.sql` uma única vez se ainda não existirem. A transação cria tabelas, índices, restrições e políticas RLS. O arquivo `supabase/require-account.sql` atualiza as políticas de uma instalação anterior para exigir contas permanentes.
 2. Para usar outro projeto, altere a URL e a chave **publicável** em `js/config.js` e crie uma conta em **Authentication → Users**. Nunca coloque uma chave secreta ou `service_role` no código do navegador.
 3. Adicione a URL publicada do Ponto em **Authentication → URL Configuration → Redirect URLs**, para permitir a recuperação de senha. Preserve as URLs existentes do Meu Celeiro.
 4. Entre com e-mail e senha, escolha um PIN de quatro dígitos e faça um registro para conferir o salvamento.
@@ -60,6 +60,8 @@ O salvamento é imediato. Falhas mantêm o formulário aberto e não alteram o e
 
 `npm test` cobre oito cenários: jornada com vários intervalos, dias sem registro e fins de semana, semanas na virada do ano, datas e horários inválidos, sobreposição, importação com duplicados, formatação e PIN.
 
+O workflow `supabase-check.yml` verifica a API real usando apenas a chave pública e consultas sem registros, e também aplica o esquema em um Postgres 17 descartável para testar integridade e políticas RLS. `tests/live-database-check.sql` contém a verificação administrativa executada no Supabase real; ela usa uma conta existente sem ler e-mail, senha ou tokens e encerra com `ROLLBACK`.
+
 Há também um roteiro Playwright em `tests/browser.mjs`, com SDK simulado para conferir os formulários e a interação da interface. As 15 verificações passaram no [GitHub Actions](https://github.com/leticiabeatriz/ponto-estagio/actions/runs/39518829592), incluindo login, PIN, registros, importação, exportação e layout no celular. Não substitui um teste do Supabase real. Para executá-lo em um ambiente com navegador permitido:
 
 ```sh
@@ -76,8 +78,6 @@ O código está em [leticiabeatriz/ponto-estagio](https://github.com/leticiabeat
 
 Para hospedar no GitHub Pages, use a pasta raiz da branch `main` em **Settings → Pages → Deploy from a branch**. Não há build. Uma política de branch pode exigir publicação por Actions; nesse caso configure o workflow de Pages no próprio repositório. Depois, adicione a URL final à lista de redirecionamentos do Supabase.
 
-## Pendências desta entrega
+## Estado da entrega
 
-- Confirmar/aplicar o esquema e validar login, RLS e persistência no Supabase real: as consultas expiraram.
-
-O código foi publicado no GitHub; os testes de domínio/PIN e os testes de interface com banco simulado passaram. A configuração e a integração com o Supabase real ainda precisam ser confirmadas.
+O código está publicado no GitHub, o banco está configurado no Supabase e as operações de dados e políticas foram verificadas no banco real. Os testes de domínio/PIN e os fluxos de interface com banco simulado também passaram. A publicação de um endereço web e sua inclusão nos redirecionamentos de recuperação de senha são etapas de hospedagem separadas, descritas acima.
