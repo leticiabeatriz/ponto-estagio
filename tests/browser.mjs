@@ -79,7 +79,9 @@ try {
   const download=page.waitForEvent('download');await page.locator('#exportJson').click();
   assert.match((await download).suggestedFilename(),/^ponto-backup-.*\.json$/);checks++;
   await page.setViewportSize({width:390,height:844});
-  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+  await page.screenshot({path:path.join(output,'mobile.png'),fullPage:true});
+  const layout=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth,overflow:[...document.querySelectorAll('#appView *')].map(el=>({tag:el.tagName,id:el.id,cls:el.className?.baseVal??el.className,right:el.getBoundingClientRect().right,width:el.getBoundingClientRect().width})).filter(el=>el.right>innerWidth+1&&el.width>0).slice(0,20)}));
+  assert.equal(layout.scroll>layout.width,false,JSON.stringify(layout));
   await page.locator('#mobileSettings').click();
   await page.locator('#settingsDialog').waitFor({state:'visible'});
   await page.locator('#settingsDialog [data-close]').click();
