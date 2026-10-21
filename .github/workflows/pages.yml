@@ -22,7 +22,6 @@ jobs:
         with:
           path: _site
   deploy:
-    if: github.event.repository.has_pages || github.event_name == 'workflow_dispatch'
     needs: prepare
     runs-on: ubuntu-latest
     permissions:
@@ -43,4 +42,7 @@ jobs:
         run: |
           curl --fail --silent --show-error --location --retry 6 --retry-delay 5 --retry-all-errors "$PONTO_SITE_URL" --output /tmp/ponto-published.html
           test -s /tmp/ponto-published.html
+          for asset in js/app.js js/database.js js/config.js css/style.css icon.svg; do
+            curl --fail --silent --show-error --location --retry 3 --retry-delay 3 --retry-all-errors "${PONTO_SITE_URL%/}/$asset" --output /dev/null
+          done
           echo "Site publicado: $PONTO_SITE_URL"
