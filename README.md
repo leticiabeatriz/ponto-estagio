@@ -60,7 +60,7 @@ O salvamento é imediato. Falhas mantêm o formulário aberto e não alteram o e
 
 `npm test` cobre oito cenários: jornada com vários intervalos, dias sem registro e fins de semana, semanas na virada do ano, datas e horários inválidos, sobreposição, importação com duplicados, formatação e PIN.
 
-Há também um roteiro Playwright em `tests/browser.mjs`, com SDK simulado para conferir os formulários e a interação da interface. Não substitui um teste do Supabase real. Para executá-lo em um ambiente com navegador permitido:
+Há também um roteiro Playwright em `tests/browser.mjs`, com SDK simulado para conferir os formulários e a interação da interface. As 15 verificações passaram no [GitHub Actions](https://github.com/leticiabeatriz/ponto-estagio/actions/runs/39518829592), incluindo login, PIN, registros, importação, exportação e layout no celular. Não substitui um teste do Supabase real. Para executá-lo em um ambiente com navegador permitido:
 
 ```sh
 npm install --no-save --package-lock=false playwright@1.62.1
@@ -68,7 +68,7 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-Se já houver Chromium instalado, defina `CHROMIUM_PATH` com o caminho do executável. No ambiente de desenvolvimento desta entrega, o navegador foi bloqueado pelo sandbox; o roteiro ainda não foi executado com sucesso. As capturas serão criadas em `test-results/` quando o teste for executado.
+Se já houver Chromium instalado, defina `CHROMIUM_PATH` com o caminho do executável. No ambiente local, o navegador foi bloqueado pelo sandbox, por isso a validação foi executada no GitHub Actions. As capturas ficam em `test-results/` e no artefato `interface-ponto` de cada execução do workflow.
 
 ## GitHub
 
@@ -79,6 +79,5 @@ Para hospedar no GitHub Pages, use a pasta raiz da branch `main` em **Settings �
 ## Pendências desta entrega
 
 - Confirmar/aplicar o esquema e validar login, RLS e persistência no Supabase real: as consultas expiraram.
-- Executar o roteiro no navegador em ambiente autorizado.
 
-As alterações locais e os testes de domínio/PIN estão concluídos. Essas pendências não devem ser tratadas como publicação ou integração remota já verificadas.
+O código foi publicado no GitHub; os testes de domínio/PIN e os testes de interface com banco simulado passaram. A configuração e a integração com o Supabase real ainda precisam ser confirmadas.
