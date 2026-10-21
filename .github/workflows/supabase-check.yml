@@ -1,0 +1,48 @@
+name: Verificar banco e conexão Supabase
+on:
+  push:
+    paths:
+      - 'supabase/**'
+      - 'js/config.js'
+      - 'tests/supabase-connectivity.mjs'
+      - 'tests/postgres-bootstrap.sql'
+      - 'tests/database.test.sql'
+      - '.github/workflows/supabase-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  connectivity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Diagnóstico de leitura da API pública
+        run: node tests/supabase-connectivity.mjs
+  schema:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ponto_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validar esquema e políticas em Postgres descartável
+        env:
+          PGPASSWORD: postgres
+        run: >-
+          psql -h localhost -U postgres -d ponto_test -v ON_ERROR_STOP=1
+          -f tests/postgres-bootstrap.sql -f supabase/schema.sql -f tests/database.test.sql
