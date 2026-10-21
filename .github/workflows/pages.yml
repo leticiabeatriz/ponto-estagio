@@ -1,0 +1,46 @@
+name: Publicar site no GitHub Pages
+on:
+  push:
+    branches: ['main']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preparar somente os arquivos públicos do site
+        run: |
+          mkdir -p _site
+          cp index.html icon.svg .nojekyll _site/
+          cp -R css js _site/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+  deploy:
+    if: github.event.repository.has_pages || github.event_name == 'workflow_dispatch'
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - name: Publicar
+        id: deployment
+        uses: actions/deploy-pages@v4
+      - name: Conferir endereço publicado
+        env:
+          PONTO_SITE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          curl --fail --silent --show-error --location --retry 6 --retry-delay 5 --retry-all-errors "$PONTO_SITE_URL" --output /tmp/ponto-published.html
+          test -s /tmp/ponto-published.html
+          echo "Site publicado: $PONTO_SITE_URL"
