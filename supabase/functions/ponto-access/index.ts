@@ -1,9 +1,11 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.118.0';
 import {accessService,AccessError} from './core.js';
+import {sendByRelay} from './relay-mail.js';
 const url=Deno.env.get('SUPABASE_URL')!;
 const key=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const options={auth:{autoRefreshToken:false,persistSession:false}};
 const admin=createClient(url,key,options);
+const relayKey=Deno.env.get('PONTO_SECURESMTP_API_KEY');
 const resend=Deno.env.get('RESEND_API_KEY');
 const sender=Deno.env.get('PONTO_SENDER_EMAIL');
 // Gmail permite começar sem domínio próprio. Credenciais somente nos Secrets.
@@ -11,7 +13,7 @@ const gmailAddress=Deno.env.get('PONTO_GMAIL_ADDRESS');
 const gmailAppPassword=Deno.env.get('PONTO_GMAIL_APP_PASSWORD')?.replace(/\s/g,'');
 const handle=accessService({
   recoverySecret:key,
-  mailReady:Boolean((gmailAddress&&gmailAppPassword)||(resend&&sender)),
+  mailReady:Boolean(relayKey||(gmailAddress&&gmailAppPassword)||(resend&&sender)),
   async storage(action:string,payload:Record<string,unknown>) {
     const {data,error}=await admin.rpc('ponto_auth_storage',{action,payload});
     if(error) {
@@ -55,6 +57,7 @@ const handle=accessService({
     const subject='Recuperar seu PIN do Ponto';
     const text=`Seu código para criar um novo PIN no Ponto é: ${code}\n\nEle vale por 15 minutos. Digite-o na tela de recuperação do site.\nSe você não pediu a recuperação, ignore este e-mail.`;
     try {
+      if(relayKey) {await sendByRelay({key:relayKey,email,subject,text});return;}
       if(gmailAddress&&gmailAppPassword) {
         const {default:nodemailer}=await import('npm:nodemailer@10.1.7');
         // TLS desde a conexão; a porta 465 é compatível com o Supabase Edge.
