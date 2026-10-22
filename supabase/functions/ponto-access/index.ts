@@ -6,9 +6,12 @@ const options={auth:{autoRefreshToken:false,persistSession:false}};
 const admin=createClient(url,key,options);
 const resend=Deno.env.get('RESEND_API_KEY');
 const sender=Deno.env.get('PONTO_SENDER_EMAIL');
+// Gmail permite começar sem domínio próprio. Credenciais somente nos Secrets.
+const gmailAddress=Deno.env.get('PONTO_GMAIL_ADDRESS');
+const gmailAppPassword=Deno.env.get('PONTO_GMAIL_APP_PASSWORD')?.replace(/\s/g,'');
 const handle=accessService({
   recoverySecret:key,
-  mailReady:Boolean(resend&&sender),
+  mailReady:Boolean((gmailAddress&&gmailAppPassword)||(resend&&sender)),
   async storage(action:string,payload:Record<string,unknown>) {
     const {data,error}=await admin.rpc('ponto_auth_storage',{action,payload});
     if(error) {
@@ -49,12 +52,33 @@ const handle=accessService({
     }
   },
   async mail(email:string,code:string) {
-    const response=await fetch('https://api.resend.com/emails',{
-      method:'POST',headers:{Authorization:`Bearer ${resend}`,'Content-Type':'application/json'},
-      body:JSON.stringify({from:`Ponto <${sender}>`,to:[email],subject:'Recuperar seu PIN do Ponto',
-        text:`Seu código para criar um novo PIN no Ponto é: ${code}\n\nEle vale por 15 minutos. Digite-o na tela de recuperação do site.\nSe você não pediu a recuperação, ignore este e-mail.`})
-    });
-    if(!response.ok) throw new AccessError('Não foi possível enviar a recuperação agora. Tente novamente mais tarde.',503);
+    const subject='Recuperar seu PIN do Ponto';
+    const text=`Seu código para criar um novo PIN no Ponto é: ${code}\n\nEle vale por 15 minutos. Digite-o na tela de recuperação do site.\nSe você não pediu a recuperação, ignore este e-mail.`;
+    try {
+      if(gmailAddress&&gmailAppPassword) {
+        const {default:nodemailer}=await import('npm:nodemailer@10.1.7');
+        // TLS desde a conexão; a porta 465 é compatível com o Supabase Edge.
+        const transport=nodemailer.createTransport({
+          host:'smtp.gmail.com',port:465,secure:true,
+          auth:{user:gmailAddress,pass:gmailAppPassword},
+          connectionTimeout:10000,greetingTimeout:10000,socketTimeout:15000,
+          disableFileAccess:true,disableUrlAccess:true
+        });
+        try {
+          const result=await transport.sendMail({from:{name:'Ponto',address:gmailAddress},to:email,subject,text});
+          if(!result.accepted?.length) throw new Error('Destinatário recusado');
+        } finally {transport.close();}
+        return;
+      }
+      const response=await fetch('https://api.resend.com/emails',{
+        method:'POST',headers:{Authorization:`Bearer ${resend}`,'Content-Type':'application/json'},
+        body:JSON.stringify({from:`Ponto <${sender}>`,to:[email],subject,text}),signal:AbortSignal.timeout(20000)
+      });
+      if(!response.ok) throw new Error('Envio recusado');
+    } catch {
+      // As respostas do SMTP podem conter endereços; não as registra nem expõe.
+      throw new AccessError('Não foi possível enviar a recuperação agora. Tente novamente mais tarde.',503);
+    }
   }
 });
 const allowedOrigins=new Set(['https://leticiabeatriz.github.io','http://localhost:4173','http://127.0.0.1:4173']);
