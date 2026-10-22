@@ -26,3 +26,32 @@ for(const [payload,expected] of [
   console.log(`Acesso ${payload.action}: HTTP ${response.status}`);
   if(response.status!==expected)process.exitCode=1;
 }
+
+const assert=(await import('node:assert/strict')).default;
+const fixture={"email":"ponto-e2e-c6f11b5a-8155-441e-a6bf-1c29e4a2ec3e@example.invalid","inviteEmail":"ponto-invite-e2e-c6f11b5a-8155-441e-a6bf-1c29e4a2ec3e@example.invalid","pin":"4826"};
+async function request(path,body,token) {
+ const response=await fetch(config.url+path,{method:body?'POST':'GET',headers:{apikey:config.publishableKey,'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(25000)});
+ const data=await response.json();return {status:response.status,data};
+}
+async function edge(body,token,status=200) {
+ const r=await request('/functions/v1/ponto-access',body,token);assert.equal(r.status,status,r.data.error||'Falha na função de acesso');return r.data;
+}
+const logged=await edge({action:'login',email:fixture.email,pin:fixture.pin});
+assert.equal(Boolean(logged.session?.access_token),true);
+const ownerToken=logged.session.access_token;
+const user=await request('/auth/v1/user',null,ownerToken);assert.equal(user.status,200);assert.equal(user.data.app_metadata.ponto_pin_account,true);
+const entries=await request('/rest/v1/ponto_entries?select=note',null,ownerToken);assert.equal(entries.status,200);assert.equal(entries.data.length,1);
+assert.equal(entries.data[0].note,'Teste temporário de integração');
+await edge({action:'unlock',pin:fixture.pin},ownerToken);
+const invitation=await edge({action:'invite'},ownerToken);
+const registered=await edge({action:'register',email:fixture.inviteEmail,name:'Convidada temporária',pin:'2468',invite:invitation.invite});
+assert.equal(Boolean(registered.session?.access_token),true);
+const invitedToken=registered.session.access_token;
+const isolated=await request('/rest/v1/ponto_entries?select=id',null,invitedToken);assert.equal(isolated.status,200);assert.equal(isolated.data.length,0);
+const profiles=await request('/rest/v1/ponto_profiles?select=display_name,contact_email',null,invitedToken);assert.equal(profiles.status,200);assert.equal(profiles.data.length,1);assert.equal(profiles.data[0].contact_email,fixture.inviteEmail);
+await edge({action:'invite-info',invite:invitation.invite},null,400);
+await edge({action:'profile',name:'Convidada temporária',pin:'1357'},invitedToken);
+const relogged=await edge({action:'login',email:fixture.inviteEmail,pin:'1357'});
+const refreshed=await request('/auth/v1/token?grant_type=refresh_token',{refresh_token:relogged.session.refresh_token});
+assert.equal(refreshed.status,200);assert.equal(Boolean(refreshed.data.access_token),true);
+console.log('Integração real: PIN, transição de registros, sessões, convite, cadastro, isolamento e troca de PIN: OK.');
