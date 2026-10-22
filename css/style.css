@@ -15,3 +15,5 @@ dialog{width:min(460px,calc(100vw - 32px));max-height:90dvh;border:1px solid var
 @media print{.sidebar,.topbar,.page-heading>.button,.middle-grid,.filter-bar,.history-actions,.row-actions,.page-footer,.demo-banner{display:none!important}.main-column{margin:0}.dashboard{padding:10px}.week .table-wrap{overflow:visible}.week{break-inside:avoid}.metric-card,.balance-card{border:1px solid #ccc;box-shadow:none}.balance-card{color:#173e35;background:#fff}.balance-card>p,.card-top{color:#173e35}.overview-grid{grid-template-columns:repeat(4,1fr)}.app-shell{display:block}}
 
 @media(max-width:700px){.topbar-right #todayLabel{display:none}.topbar-right{gap:4px}.overview-grid>*,.middle-grid>*{min-width:0}}
+
+#settingsDialog .modal-actions{flex-wrap:wrap}#inviteLinkLabel{margin-top:20px}#inviteMessage{margin-top:12px;font-size:12px;overflow-wrap:anywhere}#inviteMessage.error{color:var(--red)}

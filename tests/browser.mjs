@@ -12,6 +12,11 @@ try {
   await context.route('**/*',async route=>{
     const url=new URL(route.request().url());
     if(url.hostname==='cdn.jsdelivr.net')return route.fulfill({contentType:'text/javascript',headers:{'access-control-allow-origin':'*'},body:await readFile(path.join(root,'tests/fake-sdk.js'),'utf8')});
+    if(url.pathname==='/functions/v1/ponto-access') {
+      if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'POST,OPTIONS'}});
+      const response=await route.request().frame().evaluate(data=>window.__pontoAccess(data),route.request().postDataJSON());
+      return route.fulfill({status:response.status,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify(response.body)});
+    }
     if(url.hostname!=='localhost')return route.abort();
     const file=path.join(root,url.pathname==='/'?'index.html':url.pathname);
     const type=file.endsWith('.css')?'text/css':file.endsWith('.js')?'text/javascript':file.endsWith('.svg')?'image/svg+xml':'text/html';
@@ -22,14 +27,12 @@ try {
   await page.locator('#loginForm').waitFor({state:'visible'});
   await page.screenshot({path:path.join(output,'login.png'),fullPage:true});
   await page.locator('#loginForm [name=email]').fill('test@example.com');
-  await page.locator('#loginForm [name=password]').fill('wrong-password');
+  await page.locator('#loginForm [name=pin]').fill('9999');
   await page.locator('#loginForm button[type=submit]').click();
-  await page.getByText('E-mail ou senha incorretos.').waitFor();checks++;
-  await page.locator('#loginForm [name=password]').fill('test-password');
+  await page.getByText('E-mail ou PIN incorretos.').waitFor();checks++;
+  await page.locator('#loginForm [name=pin]').fill('4826');
   await page.locator('#loginForm button[type=submit]').click();
-  await page.locator('#confirmPinLabel').waitFor({state:'visible'});
-  await page.locator('#pinForm [name=pin]').fill('4826');await page.locator('#pinForm [name=confirmation]').fill('4826');
-  await page.locator('#pinSubmit').click();await page.locator('#appView').waitFor({state:'visible'});checks++;
+  await page.locator('#appView').waitFor({state:'visible'});checks++;
   await page.locator('#addButton').click();
   await page.locator('#entryForm [name=date]').fill('2026-10-19');
   await page.locator('#entryForm [name=note]').fill('<img src=x onerror=alert(1)>');
@@ -87,6 +90,28 @@ try {
   await page.locator('#settingsDialog [data-close]').click();
   await page.screenshot({path:path.join(output,'mobile.png'),fullPage:true});checks++;
   await page.setViewportSize({width:1440,height:1100});
+  await page.locator('#settingsButton').click();await page.locator('#logoutButton').click();await page.locator('#loginForm').waitFor({state:'visible'});
+  await page.goto('http://localhost/#invite=invalid');
+  await page.getByText('Este convite venceu ou já foi utilizado. Peça um novo link.').waitFor();checks++;
+  await page.goto('http://localhost/#invite='+'a'.repeat(64));
+  await page.locator('#signupForm').waitFor({state:'visible'});
+  assert.equal(await page.locator('#signupForm input').count(),3);
+  await page.locator('#signupForm [name=email]').fill('convidada@example.com');
+  await page.locator('#signupForm [name=name]').fill('Beatriz');
+  await page.locator('#signupForm [name=pin]').fill('2468');
+  await page.locator('#signupForm button[type=submit]').click();await page.locator('#appView').waitFor({state:'visible'});
+  assert.equal(await page.locator('#profileName').textContent(),'Beatriz');
+  assert.equal(await page.evaluate(()=>window.__fakeDb.recoveryEmails||0),0);checks++;
+  await page.locator('#inviteButton').click();await page.locator('#inviteForm button[type=submit]').click();
+  await page.locator('#copyInvite').waitFor({state:'visible'});
+  assert.match(await page.locator('#inviteLink').inputValue(),/#invite=[a-f0-9]{64}$/);
+  await page.locator('#inviteDialog [data-close]').click();checks++;
+  await page.locator('#lockButton').click();await page.locator('#pinForgot').click();
+  await page.locator('#recoveryRequestForm button[type=submit]').click();await page.locator('#recoveryForm').waitFor({state:'visible'});
+  await page.locator('#recoveryForm [name=code]').fill('123456');await page.locator('#recoveryForm [name=pin]').fill('1357');
+  await page.locator('#recoveryForm button[type=submit]').click();await page.locator('#appView').waitFor({state:'visible'});
+  await page.reload();await page.locator('#pinForm').waitFor({state:'visible'});
+  await page.locator('#pinForm [name=pin]').fill('1357');await page.locator('#pinSubmit').click();await page.locator('#appView').waitFor({state:'visible'});checks++;
   await page.locator('#settingsButton').click();await page.locator('#logoutButton').click();await page.locator('#loginForm').waitFor({state:'visible'});
   await page.locator('#demoButton').click();await page.locator('#appView').waitFor({state:'visible'});
   assert.equal(await page.locator('#demoBanner').isVisible(),true);

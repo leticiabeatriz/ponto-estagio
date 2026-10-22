@@ -39,15 +39,36 @@ export function createClient() {
     };
     return query;
   }
+  const userId='00000000-0000-4000-a000-000000000001';
+  const tokens=()=>({access_token:'fake-access',refresh_token:'fake-refresh',user:{id:userId,email:'internal@example.invalid'}});
+  const reply=(body,status=200)=>({body,status});
+  window.__pontoAccess=async({action,email,pin,name,invite,code})=>{
+    if(action==='resume')return reply({email:store.profile?.contact_email||'test@example.com'});
+    if(action==='login') {
+      if(email!==(store.profile?.contact_email||'test@example.com') || pin!==(store.pin||'4826'))return reply({error:'E-mail ou PIN incorretos.'},401);
+      if(!store.profile)store.profile={user_id:userId,display_name:'Conta teste',contact_email:email};
+      persist();return reply({session:tokens()});
+    }
+    if(action==='unlock')return pin===(store.pin||'4826')?reply({ok:true}):reply({error:'PIN incorreto.'},401);
+    if(action==='profile') {
+      Object.assign(store.profile,{display_name:name});if(pin)store.pin=pin;persist();return reply({profile:store.profile});
+    }
+    if(action==='invite')return reply({invite:'a'.repeat(64),expires_at:'2026-12-01'});
+    if(action==='invite-info')return invite==='a'.repeat(64)?reply({inviter:'Letícia'}):reply({error:'Este convite venceu ou já foi utilizado. Peça um novo link.'},400);
+    if(action==='register') {
+      store.profile={user_id:userId,display_name:name,contact_email:email};store.pin=pin;store.entries=[];persist();return reply({session:tokens()});
+    }
+    if(action==='recover'){store.recoveryEmails=(store.recoveryEmails||0)+1;persist();return reply({ok:true});}
+    if(action==='reset'){
+      if(code!=='123456')return reply({error:'Código incorreto ou vencido.'},400);
+      store.pin=pin;persist();return reply({session:tokens()});
+    }
+    return reply({error:'Operação desconhecida'},400);
+  };
   return {from,auth:{
     async getSession(){return success({session:store.session});},
-    async signInWithPassword({email,password}){
-      if(email!=='test@example.com'||password!=='test-password')return {data:null,error:{message:'Invalid login credentials'}};
-      store.session={user:{id:'00000000-0000-4000-a000-000000000001',email}};persist();return success({session:store.session});
-    },
+    async setSession(){store.session=tokens();persist();authCallback?.('SIGNED_IN',store.session);return success({session:store.session});},
     async signOut(){store.session=null;persist();authCallback?.('SIGNED_OUT',null);return success(null);},
-    onAuthStateChange(callback){authCallback=callback;return {data:{subscription:{unsubscribe(){}}}};},
-    async resetPasswordForEmail(){return success(null);},
-    async updateUser(){return success({user:store.session?.user});}
+    onAuthStateChange(callback){authCallback=callback;return {data:{subscription:{unsubscribe(){}}}};}
   }};
 }

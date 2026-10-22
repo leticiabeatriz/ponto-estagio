@@ -3,7 +3,7 @@ let client;
 export async function connect() {
   if (!client) {
     const {createClient} = await import(config.sdkUrl);
-    client = createClient(config.url,config.publishableKey,{auth:{storageKey:'ponto-pp-auth',persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+    client = createClient(config.url,config.publishableKey,{auth:{storageKey:'ponto-pp-auth',persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
   }
   return client;
 }
@@ -11,23 +11,30 @@ function unwrap(result) {
   if (result.error) {
     const error = result.error;
     if (error.code === '23P01') throw new Error('Já existe um registro neste horário. Atualize a página para conferir.');
-    if (['42P01','PGRST205'].includes(error.code)) throw new Error('O banco do Ponto ainda precisa ser configurado. Consulte o README do projeto.');
+    if (['42P01','PGRST205'].includes(error.code)) throw new Error('O banco do Ponto está indisponível. Tente novamente mais tarde.');
     if (error.message?.includes('Invalid login')) throw new Error('E-mail ou senha incorretos.');
     throw new Error(error.message || 'Não foi possível acessar o banco.');
   }
   return result.data;
 }
 export async function session() { return unwrap(await client.auth.getSession()).session; }
-export async function signIn(email,password) { return unwrap(await client.auth.signInWithPassword({email,password})).session; }
+// O PIN é validado no servidor. A chave privilegiada nunca vai para o navegador.
+export async function access(action,values={}) {
+  const current=await session();
+  const response=await fetch(`${config.url}/functions/v1/ponto-access`,{
+    method:'POST',headers:{'Content-Type':'application/json',apikey:config.publishableKey,
+      ...(current?.access_token?{Authorization:`Bearer ${current.access_token}`}:{})},
+    body:JSON.stringify({action,...values}),signal:AbortSignal.timeout(30000)
+  });
+  let data;try{data=await response.json();}catch{throw new Error('Não foi possível conectar ao Ponto. Tente novamente.');}
+  if(!response.ok) throw new Error(data.error||'Não foi possível concluir.');
+  if(data.session) data.session=unwrap(await client.auth.setSession(data.session)).session;
+  return data;
+}
+export async function signIn(email,pin) { return (await access('login',{email,pin})).session; }
 export async function signOut() { unwrap(await client.auth.signOut({scope:'local'})); }
 export function observeAuth(callback) { return client.auth.onAuthStateChange((event,s)=>setTimeout(()=>callback(event,s),0)); }
-export async function resetPassword(email) {
-  const redirectTo = new URL('./',location.href).href;
-  unwrap(await client.auth.resetPasswordForEmail(email,{redirectTo}));
-}
-export async function updatePassword(password) { unwrap(await client.auth.updateUser({password})); }
 export async function loadProfile(user) {
-  unwrap(await client.from('ponto_profiles').upsert({user_id:user.id},{onConflict:'user_id',ignoreDuplicates:true}));
   return unwrap(await client.from('ponto_profiles').select('*').eq('user_id',user.id).single());
 }
 export async function saveProfile(user,values) {
