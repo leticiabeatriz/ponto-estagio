@@ -326,6 +326,21 @@ window.addEventListener('online',()=>toast('Conexão restabelecida.'));
 window.addEventListener('beforeunload',event=>{
   if(busy || $('#entryDialog').open) {event.preventDefault();event.returnValue='';}
 });
+async function showInvitation(invitation) {
+  const current=++generation;state.invite=invitation;state.demo=false;
+  access('','Conferindo seu convite…');
+  try {
+    await api.connect();const info=await api.access('invite-info',{invite:invitation});
+    if(current!==generation||state.demo)return;
+    access('signupForm',info.inviter?`${info.inviter} convidou você para usar o Ponto. Seus registros serão só seus.`:'Você recebeu um convite para usar o Ponto.');
+  } catch(error) {
+    if(current===generation&&!state.demo){access('loginForm','Entre com seu e-mail e PIN.');message('#accessMessage',error.message,true);}
+  }
+}
+window.addEventListener('hashchange',()=>{
+  const invite=new URLSearchParams(location.hash.slice(1)).get('invite');
+  if(invite&&invite!==state.invite&&!busy)showInvitation(invite);
+});
 async function init() {
   const invitation=new URLSearchParams(location.hash.slice(1)).get('invite');
   try {
@@ -340,10 +355,7 @@ async function init() {
     });
     if(state.demo)return;
     if(invitation) {
-      state.invite=invitation;access('','Conferindo seu convite…');
-      const info=await api.access('invite-info',{invite:invitation});
-      access('signupForm',info.inviter?`${info.inviter} convidou você para usar o Ponto. Seus registros serão só seus.`:'Você recebeu um convite para usar o Ponto.');
-      return;
+      await showInvitation(invitation);return;
     }
     const s=await api.session();
     if(s)await prepare(s.user);else access('loginForm','Entre com seu e-mail e PIN.');

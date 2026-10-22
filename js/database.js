@@ -12,7 +12,6 @@ function unwrap(result) {
     const error = result.error;
     if (error.code === '23P01') throw new Error('Já existe um registro neste horário. Atualize a página para conferir.');
     if (['42P01','PGRST205'].includes(error.code)) throw new Error('O banco do Ponto está indisponível. Tente novamente mais tarde.');
-    if (error.message?.includes('Invalid login')) throw new Error('E-mail ou senha incorretos.');
     throw new Error(error.message || 'Não foi possível acessar o banco.');
   }
   return result.data;
@@ -36,9 +35,6 @@ export async function signOut() { unwrap(await client.auth.signOut({scope:'local
 export function observeAuth(callback) { return client.auth.onAuthStateChange((event,s)=>setTimeout(()=>callback(event,s),0)); }
 export async function loadProfile(user) {
   return unwrap(await client.from('ponto_profiles').select('*').eq('user_id',user.id).single());
-}
-export async function saveProfile(user,values) {
-  return unwrap(await client.from('ponto_profiles').update(values).eq('user_id',user.id).select().single());
 }
 const fromRow = r => ({id:r.id,date:r.work_date,start:r.start_time.slice(0,5),end:r.end_time.slice(0,5),note:r.note,updated_at:r.updated_at});
 const toRow = (user,e) => ({id:e.id,user_id:user.id,work_date:e.date,start_time:e.start,end_time:e.end,note:e.note||''});

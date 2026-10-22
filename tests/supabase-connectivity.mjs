@@ -16,7 +16,7 @@ if(results.some(r=>r.error||r.status>=500||r.tablePresent===false||(!r.path.incl
 // Verificação pública da função: nenhuma conta real, nenhum e-mail enviado.
 for(const [payload,expected] of [
   [{action:'invite'},401],
-  [{action:'login',email:'ponto-probe@example.invalid',pin:'9999'},401],
+  [{action:'login',email:`ponto-probe-${crypto.randomUUID()}@example.invalid`,pin:'9999'},401],
   [{action:'register',email:'ponto-probe@example.invalid',name:'Teste',pin:'1234',invite:'invalid'},400]
 ]) {
   const response=await fetch(config.url+'/functions/v1/ponto-access',{
