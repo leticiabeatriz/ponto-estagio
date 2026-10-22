@@ -5,8 +5,8 @@ import {createPin,verifyPin} from './pin.js';
 const $ = selector => document.querySelector(selector);
 const icon = name => `<svg aria-hidden="true"><use href="#i-${name}"/></svg>`;
 const escape = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const state = {user:null,profile:null,entries:[],demo:false,unlocked:false,freshAuth:false,pinSetup:false,recovery:false};
-let editing = null, deleting = null, busy = 0, toastTimer, generation = 0, resetAfterLogin = false;
+const state = {user:null,profile:null,entries:[],demo:false,unlocked:false,invite:null};
+let editing = null, deleting = null, busy = 0, toastTimer, generation = 0;
 let activityAt = Date.now();
 const expanded = new Map();
 function message(id,text,error=false) { $(id).textContent=text; $(id).classList.toggle('error',error); }
@@ -25,35 +25,40 @@ function closeDialogs() { document.querySelectorAll('dialog[open]').forEach(d=>d
 function access(mode,copy) {
   closeDialogs(); state.unlocked=false;
   $('#appView').hidden=true; $('#accessView').hidden=false;
-  for(const id of ['loginForm','pinForm','recoveryForm']) $('#'+id).hidden=id!==mode;
+  for(const id of ['loginForm','signupForm','pinForm','recoveryRequestForm','recoveryForm']) $('#'+id).hidden=id!==mode;
   $('#accessCopy').textContent=copy;
-  $('#accessTitle').textContent=mode==='pinForm' ? (state.pinSetup ? 'Seu novo PIN.' : 'Bom te ver por aqui.') : mode==='recoveryForm' ? 'Crie uma nova senha.' : 'Bem-vinda de volta.';
+  const titles={pinForm:'Bom te ver por aqui.',signupForm:'Seu Ponto começa aqui.',recoveryRequestForm:'Esqueceu seu PIN?',recoveryForm:'Crie um novo PIN.'};
+  $('#accessTitle').textContent=titles[mode]||'Bem-vinda de volta.';
   message('#accessMessage','');
 }
 function showPin() {
-  state.pinSetup=state.pinSetup || !state.profile?.pin_hash;
-  access('pinForm',state.demo ? 'Demonstração: use o PIN 1234.' : state.pinSetup ? 'Escolha 4 dígitos para bloquear o Ponto neste dispositivo.' : 'Digite seu PIN para acessar os registros.');
+  access('pinForm',state.demo ? 'Demonstração: use o PIN 1234.' : 'Este navegador já lembra sua conta. Digite seu PIN para entrar.');
   $('#pinForm').reset();
-  $('#confirmPinLabel').hidden=!state.pinSetup;
-  $('#pinForm').elements.confirmation.required=state.pinSetup;
-  $('#pinSubmit').innerHTML=(state.pinSetup ? 'Criar PIN' : 'Desbloquear')+' '+icon('arrow');
-  $('#pinLogout').textContent=state.demo ? 'Sair da demonstração' : state.freshAuth ? 'Redefinir meu PIN' : 'Usar e-mail e senha / redefinir PIN';
+  $('#pinLogout').textContent=state.demo ? 'Sair da demonstração' : 'Entrar em outra conta';
+  $('#pinForgot').hidden=state.demo;
   $('#pinForm').elements.pin.focus();
 }
 async function prepare(user) {
-  const current=++generation;
-  state.user=user;
+  const current=++generation;state.user=user;
   access('','Carregando sua conta…');
   try {
-    const profile=await api.loadProfile(user);
+    const account=await api.access('resume');
     if(current!==generation || state.demo) return;
-    state.profile=profile; state.pinSetup=resetAfterLogin; resetAfterLogin=false;
-    showPin();
+    state.profile={contact_email:account.email};showPin();
   } catch(error) {
     if(current!==generation) return;
-    access('loginForm','Entre novamente ou confira a configuração do banco.');
-    message('#accessMessage',error.message,true);
+    access('loginForm','Entre com seu e-mail e PIN.');message('#accessMessage',error.message,true);
   }
+}
+async function enter(s) {
+  ++generation;state.demo=false;state.user=s.user;
+  state.profile=await api.loadProfile(s.user);
+  state.invite=null;history.replaceState(null,'',location.pathname+location.search);
+  await openApp();
+}
+function recover() {
+  $('#recoveryRequestForm').elements.email.value=state.profile?.contact_email||$('#loginForm').elements.email.value;
+  access('recoveryRequestForm','Vamos enviar um código para você escolher outro PIN.');
 }
 function lock() {
   if(!state.unlocked) return;
@@ -66,14 +71,14 @@ function lock() {
 }
 async function openApp() {
   const entries=state.demo ? state.entries : await api.loadEntries(state.user);
-  state.entries=entries; state.unlocked=true; state.pinSetup=false; state.freshAuth=false; activityAt=Date.now();
+  state.entries=entries; state.unlocked=true; activityAt=Date.now();
   $('#accessView').hidden=true; $('#appView').hidden=false; $('#demoBanner').hidden=!state.demo;
   $('#connectionLabel').textContent=state.demo ? 'Modo demonstração' : 'Dados na nuvem';
   render();
 }
 async function logout() {
   if(!state.demo) await api.signOut();
-  ++generation; state.demo=false; state.user=null; state.profile=null; state.entries=[]; state.unlocked=false;state.freshAuth=false;state.pinSetup=false;
+  ++generation; state.demo=false; state.user=null; state.profile=null; state.entries=[]; state.unlocked=false;
   expanded.clear();$('#weeksContainer').replaceChildren();
   access('loginForm','Entre com a sua conta para continuar.');
 }
@@ -149,46 +154,65 @@ const csvCell = value => '"'+String(value).replace(/^[=+@\-\t\r]/,"'$&").replace
 
 $('#loginForm').addEventListener('submit',event=>{
   event.preventDefault();const form=event.currentTarget;
-  const email=form.elements.email.value.trim(),password=form.elements.password.value;
+  const email=form.elements.email.value.trim(),pin=form.elements.pin.value;
   action(form,'#accessMessage',async()=>{
-    await api.connect(); const s=await api.signIn(email,password);
-    state.freshAuth=true;form.elements.password.value='';await prepare(s.user);
+    await api.connect();await enter(await api.signIn(email,pin));form.elements.pin.value='';
   });
 });
-$('#forgotPassword').addEventListener('click',()=>{
-  const form=$('#loginForm');const email=form.elements.email;
-  if(!email.value || !email.checkValidity()) { email.reportValidity();email.focus();return; }
-  action(form,'#accessMessage',async()=>{await api.connect();await api.resetPassword(email.value.trim());message('#accessMessage','Se o e-mail estiver cadastrado, você receberá o link de recuperação.');});
+$('#signupForm').addEventListener('submit',event=>{
+  event.preventDefault();const form=event.currentTarget;
+  const values={email:form.elements.email.value.trim(),name:form.elements.name.value.trim(),pin:form.elements.pin.value,invite:state.invite};
+  action(form,'#accessMessage',async()=>{
+    const result=await api.access('register',values);await enter(result.session);form.reset();
+  });
+});
+$('#signupLogin').addEventListener('click',()=>access('loginForm','Entre com seu e-mail e PIN.'));
+$('#forgotPassword').addEventListener('click',recover);$('#pinForgot').addEventListener('click',recover);
+$('#recoveryBack').addEventListener('click',()=>access('loginForm','Entre com seu e-mail e PIN.'));
+$('#resendRecovery').addEventListener('click',recover);
+$('#recoveryRequestForm').addEventListener('submit',event=>{
+  event.preventDefault();const form=event.currentTarget,email=form.elements.email.value.trim();
+  action(form,'#accessMessage',async()=>{
+    await api.access('recover',{email});$('#recoveryForm').reset();$('#recoveryForm').elements.email.value=email;
+    access('recoveryForm','Se o e-mail estiver cadastrado, o código chegará em instantes. Ele vale por 15 minutos.');
+  });
 });
 $('#recoveryForm').addEventListener('submit',event=>{
   event.preventDefault();const form=event.currentTarget;
-  const password=form.elements.password.value;
-  action(form,'#accessMessage',async()=>{
-    if(password!==form.elements.confirmation.value) throw new Error('As senhas precisam ser iguais.');
-    await api.updatePassword(password);form.reset();state.recovery=false;state.freshAuth=true;history.replaceState(null,'',location.pathname);await prepare((await api.session()).user);
-  });
+  const values={email:form.elements.email.value.trim(),code:form.elements.code.value,pin:form.elements.pin.value};
+  action(form,'#accessMessage',async()=>{await enter((await api.access('reset',values)).session);form.reset();});
 });
-let attempts=0, blockedUntil=0;
 $('#pinForm').addEventListener('submit',event=>{
-  event.preventDefault(); const form=event.currentTarget,pin=form.elements.pin.value,confirmation=form.elements.confirmation.value;
+  event.preventDefault(); const form=event.currentTarget,pin=form.elements.pin.value;
   action(form,'#accessMessage',async()=>{
-    if(Date.now()<blockedUntil) throw new Error('Aguarde um minuto antes de tentar novamente.');
-    if(state.pinSetup) {
-      if(pin!==confirmation) throw new Error('Os PINs precisam ser iguais.');
-      const hashed=await createPin(pin);
-      state.profile=state.demo ? {...state.profile,...hashed} : await api.saveProfile(state.user,hashed);
-      state.pinSetup=false;
-    } else if(!await verifyPin(pin,state.profile)) {
-      attempts++;
-      if(attempts>=5) {blockedUntil=Date.now()+60000;attempts=0;}
-      form.elements.pin.value='';throw new Error('PIN incorreto.');
+    if(state.demo) {
+      if(!await verifyPin(pin,state.profile)) throw new Error('PIN incorreto.');
+      await openApp();
+    } else {
+      const result=await api.access('unlock',{pin});
+      await enter(result.session||await api.session());
     }
-    attempts=0;await openApp();form.reset();
+    form.reset();
   });
 });
-$('#pinLogout').addEventListener('click',async()=>{
-  if(state.freshAuth&&!state.demo) {state.pinSetup=true;showPin();return;}
-  try {resetAfterLogin=!state.demo;await logout();} catch(error) {message('#accessMessage',error.message,true);}
+$('#pinLogout').addEventListener('click',()=>action($('#pinForm'),'#accessMessage',logout));
+$('#inviteButton').addEventListener('click',()=>{
+  if(state.demo) {toast('Os convites ficam disponíveis na sua conta.');return;}
+  closeDialogs();$('#inviteLinkLabel').hidden=true;$('#copyInvite').hidden=true;message('#inviteMessage','');$('#inviteDialog').showModal();
+});
+$('#settingsInvite').addEventListener('click',()=>$('#inviteButton').click());
+$('#inviteForm').addEventListener('submit',event=>{
+  event.preventDefault();
+  action(event.currentTarget,'#inviteMessage',async()=>{
+    const result=await api.access('invite');
+    const url=new URL('./',location.href);url.hash='invite='+result.invite;
+    $('#inviteLink').value=url.href;$('#inviteLinkLabel').hidden=false;$('#copyInvite').hidden=false;
+    message('#inviteMessage','Pronto! Copie o link e envie para a pessoa.');
+  });
+});
+$('#copyInvite').addEventListener('click',async()=>{
+  try {await navigator.clipboard.writeText($('#inviteLink').value);message('#inviteMessage','Link copiado!');}
+  catch {$('#inviteLink').select();message('#inviteMessage','Selecione o link acima e copie para compartilhar.');}
 });
 $('#addButton').addEventListener('click',()=>openEntry());
 $('#entryForm').addEventListener('input',preview);
@@ -232,7 +256,7 @@ $('#refreshButton').addEventListener('click',async event=>{
 });
 $('#settingsButton').addEventListener('click',()=>{
   const form=$('#settingsForm');form.reset();form.elements.name.value=state.profile?.display_name||'';
-  $('#accountEmail').textContent=state.demo?'Conta de demonstração':state.user.email;
+  $('#accountEmail').textContent=state.demo?'Conta de demonstração':state.profile?.contact_email||state.user.email;
   message('#settingsMessage','');$('#settingsDialog').showModal();
 });
 $('#mobileSettings').addEventListener('click',()=>$('#settingsButton').click());
@@ -240,9 +264,10 @@ $('#settingsForm').addEventListener('submit',event=>{
   event.preventDefault();const form=event.currentTarget;
   const name=form.elements.name.value.trim(),pin=form.elements.pin.value,confirmation=form.elements.confirmation.value;
   action(form,'#settingsMessage',async()=>{
-    const values={display_name:name};
-    if(pin||confirmation) {if(pin!==confirmation)throw new Error('Os PINs precisam ser iguais.');Object.assign(values,await createPin(pin));}
-    state.profile=state.demo?{...state.profile,...values}:await api.saveProfile(state.user,values);
+    if(!name) throw new Error('Informe como quer ser chamado.');
+    if(pin!==confirmation) throw new Error('Os PINs precisam ser iguais.');
+    if(state.demo) state.profile={...state.profile,display_name:name,...(pin?await createPin(pin):{})};
+    else state.profile=(await api.access('profile',{name,pin})).profile;
     form.reset();$('#settingsDialog').close();render();toast('Preferências salvas.');
   });
 });
@@ -282,7 +307,7 @@ document.querySelectorAll('.sidebar nav a').forEach(link=>link.addEventListener(
 }));
 async function demo() {
   if(busy)return;
-  ++generation;state.demo=true;state.freshAuth=false;state.user={id:'demo',email:'demo@ponto.local'};
+  ++generation;state.demo=true;state.user={id:'demo',email:'demo@ponto.local'};
   state.profile={display_name:'Letícia',...await createPin('1234')};
   state.entries=[];
   for(let offset=0;offset<16;offset++) {
@@ -301,20 +326,41 @@ window.addEventListener('online',()=>toast('Conexão restabelecida.'));
 window.addEventListener('beforeunload',event=>{
   if(busy || $('#entryDialog').open) {event.preventDefault();event.returnValue='';}
 });
+async function showInvitation(invitation) {
+  const current=++generation;state.invite=invitation;state.demo=false;
+  access('','Conferindo seu convite…');
+  try {
+    await api.connect();const info=await api.access('invite-info',{invite:invitation});
+    if(current!==generation||state.demo)return;
+    access('signupForm',info.inviter?`${info.inviter} convidou você para usar o Ponto. Seus registros serão só seus.`:'Você recebeu um convite para usar o Ponto.');
+  } catch(error) {
+    if(current===generation&&!state.demo){access('loginForm','Entre com seu e-mail e PIN.');message('#accessMessage',error.message,true);}
+  }
+}
+window.addEventListener('hashchange',()=>{
+  const invite=new URLSearchParams(location.hash.slice(1)).get('invite');
+  if(invite&&invite!==state.invite&&!busy)showInvitation(invite);
+});
 async function init() {
-  const recoveryExpected=new URLSearchParams(location.hash.slice(1)).get('type')==='recovery';
+  const invitation=new URLSearchParams(location.hash.slice(1)).get('invite');
   try {
     await api.connect();
     api.observeAuth(async(event,s)=>{
-      if(state.demo)return;
-      if(event==='PASSWORD_RECOVERY') {state.recovery=true;state.user=s.user;access('recoveryForm','A nova senha também será usada na conta do Meu Celeiro.');}
-      if(event==='SIGNED_OUT') {++generation;state.user=null;state.profile=null;state.entries=[];state.unlocked=false;$('#weeksContainer').replaceChildren();access('loginForm','Sua sessão terminou. Entre novamente.');}
-      if(event==='SIGNED_IN' && s && state.user && s.user.id!==state.user.id) {state.freshAuth=false;await prepare(s.user);}
+      if(state.demo||busy)return;
+      if(event==='SIGNED_OUT' && state.user) {
+        ++generation;state.user=null;state.profile=null;state.entries=[];state.unlocked=false;
+        $('#weeksContainer').replaceChildren();access('loginForm','Sua sessão terminou. Entre com e-mail e PIN.');
+      }
+      if(event==='SIGNED_IN' && s && state.user && s.user.id!==state.user.id) await prepare(s.user);
     });
+    if(state.demo)return;
+    if(invitation) {
+      await showInvitation(invitation);return;
+    }
     const s=await api.session();
-    if(state.demo||state.recovery)return;
-    if(recoveryExpected && s) {state.recovery=true;state.user=s.user;access('recoveryForm','A nova senha também será usada na conta do Meu Celeiro.');return;}
-    if(s)await prepare(s.user);else access('loginForm','Entre com o mesmo e-mail e senha do Meu Celeiro.');
-  } catch(error) {if(!state.demo){access('loginForm','Entre com o mesmo e-mail e senha do Meu Celeiro.');message('#accessMessage','Não foi possível conectar. Confira a internet e tente entrar novamente. '+error.message,true);}}
+    if(s)await prepare(s.user);else access('loginForm','Entre com seu e-mail e PIN.');
+  } catch(error) {
+    if(!state.demo){access('loginForm','Entre com seu e-mail e PIN.');message('#accessMessage',error.message,true);}
+  }
 }
 init();

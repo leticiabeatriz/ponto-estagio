@@ -42,22 +42,37 @@
         <h2 id="accessTitle">Bem-vinda de volta.</h2>
         <p id="accessCopy" class="muted">Entre com a sua conta para continuar.</p>
         <form id="loginForm" hidden>
-          <label>E-mail<input name="email" type="email" autocomplete="username" required placeholder="seu@email.com"></label>
-          <label>Senha<input name="password" type="password" autocomplete="current-password" required placeholder="Sua senha"></label>
+          <label>E-mail<input name="email" type="email" autocomplete="username" maxlength="254" required placeholder="seu@email.com"></label>
+          <label>PIN de acesso<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" minlength="4" maxlength="4" autocomplete="current-password" required placeholder="4 dígitos"></label>
           <button class="button primary full" type="submit">Entrar <svg><use href="#i-arrow"/></svg></button>
-          <button type="button" class="text-button" id="forgotPassword">Esqueci minha senha</button>
+          <button type="button" class="text-button" id="forgotPassword">Esqueci meu PIN</button>
+          <small class="muted">Primeiro acesso? Peça um link de convite a alguém que já usa o Ponto.</small>
+        </form>
+        <form id="signupForm" hidden>
+          <label>E-mail<input name="email" type="email" autocomplete="email" maxlength="254" required placeholder="seu@email.com"></label>
+          <label>Como quer ser chamado?<input name="name" autocomplete="nickname" maxlength="80" required placeholder="Seu nome"></label>
+          <label>Escolha seu PIN<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" minlength="4" maxlength="4" autocomplete="new-password" required placeholder="4 dígitos"></label>
+          <button class="button primary full" type="submit">Criar minha conta <svg><use href="#i-arrow"/></svg></button>
+          <button type="button" class="text-button" id="signupLogin">Já tenho conta</button>
+          <small class="muted">Seu e-mail será usado para recuperar o PIN. O cadastro é concluído aqui, sem confirmação por e-mail.</small>
         </form>
         <form id="pinForm" hidden>
-          <label id="pinLabel">PIN de acesso<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" minlength="4" autocomplete="off" class="pin-input" required placeholder="••••"></label>
-          <label id="confirmPinLabel" hidden>Confirme seu PIN<input name="confirmation" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" class="pin-input"></label>
+          <label>PIN de acesso<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" minlength="4" autocomplete="current-password" class="pin-input" required placeholder="••••"></label>
           <button class="button primary full" id="pinSubmit" type="submit">Desbloquear <svg><use href="#i-arrow"/></svg></button>
-          <button type="button" class="text-button" id="pinLogout">Usar e-mail e senha / redefinir PIN</button>
-          <small class="muted">O PIN bloqueia a interface neste dispositivo. A conta protege seus dados no banco.</small>
+          <button type="button" class="text-button" id="pinForgot">Esqueci meu PIN</button>
+          <button type="button" class="text-button" id="pinLogout">Entrar em outra conta</button>
+        </form>
+        <form id="recoveryRequestForm" hidden>
+          <label>E-mail cadastrado<input name="email" type="email" autocomplete="email" maxlength="254" required placeholder="seu@email.com"></label>
+          <button class="button primary full" type="submit">Enviar código de recuperação</button>
+          <button type="button" class="text-button" id="recoveryBack">Voltar para a entrada</button>
         </form>
         <form id="recoveryForm" hidden>
-          <label>Nova senha<input name="password" type="password" autocomplete="new-password" minlength="8" required></label>
-          <label>Repita a nova senha<input name="confirmation" type="password" autocomplete="new-password" minlength="8" required></label>
-          <button class="button primary full" type="submit">Salvar nova senha</button>
+          <label>E-mail cadastrado<input name="email" type="email" autocomplete="email" maxlength="254" required></label>
+          <label>Código recebido por e-mail<input name="code" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="one-time-code" required placeholder="6 dígitos"></label>
+          <label>Novo PIN<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" minlength="4" maxlength="4" autocomplete="new-password" required placeholder="4 dígitos"></label>
+          <button class="button primary full" type="submit">Salvar PIN e entrar</button>
+          <button type="button" class="text-button" id="resendRecovery">Pedir outro código</button>
         </form>
         <p id="accessMessage" role="status" aria-live="polite">Verificando conexão…</p>
         <div class="access-bottom"><span>Quer conhecer primeiro?</span><button id="demoButton" class="text-button" type="button">Explorar demonstração <span aria-hidden="true">↗</span></button></div>
@@ -72,6 +87,7 @@
       <nav aria-label="Navegação principal">
         <a href="#overview" class="nav-item active"><svg><use href="#i-grid"/></svg>Visão geral<span class="nav-active-dot"></span></a>
         <a href="#history" class="nav-item"><svg><use href="#i-calendar"/></svg>Meus registros</a>
+        <button class="nav-item" id="inviteButton"><svg><use href="#i-plus"/></svg>Convidar</button>
         <button class="nav-item" id="settingsButton"><svg><use href="#i-settings"/></svg>Preferências</button>
       </nav>
       <div class="sidebar-tip"><span class="tip-icon">✳</span><strong>Cada hora conta.</strong><p>Um pouquinho de organização hoje. Mais tranquilidade amanhã.</p><span class="tip-line"></span></div>
@@ -104,9 +120,10 @@
 
   <dialog id="entryDialog"><form id="entryForm"><div class="modal-heading"><div><p class="eyebrow">SUA JORNADA</p><h2 id="entryTitle">Novo registro</h2></div><button type="button" class="icon-button" data-close aria-label="Fechar"><svg><use href="#i-close"/></svg></button></div><label>Data<input type="date" name="date" required min="1900-01-01" max="2200-12-31"></label><div class="form-row"><label>Entrada<input type="time" name="start" required step="60" value="13:00"></label><label>Saída<input type="time" name="end" required step="60" value="18:00"></label></div><label>Observação <span class="muted">(opcional)</span><input name="note" maxlength="200" placeholder="Ex.: visita técnica, trabalho remoto…"></label><div id="durationPreview" class="preview-note">5h00 de trabalho</div><p class="form-error" id="entryMessage" role="alert"></p><div class="modal-actions"><button type="button" class="button secondary" data-close>Cancelar</button><button type="submit" class="button primary">Salvar registro</button></div></form></dialog>
   <dialog id="deleteDialog"><form id="deleteForm"><div class="modal-heading"><h2>Excluir registro?</h2><button type="button" class="icon-button" data-close aria-label="Fechar"><svg><use href="#i-close"/></svg></button></div><p id="deleteDescription"></p><p class="muted">Essa entrada será removida do seu banco de horas.</p><p id="deleteMessage" class="form-error" role="alert"></p><div class="modal-actions"><button type="button" class="button secondary" data-close>Cancelar</button><button type="submit" class="button danger">Excluir registro</button></div></form></dialog>
-  <dialog id="settingsDialog"><form id="settingsForm"><div class="modal-heading"><div><p class="eyebrow">DO SEU JEITO</p><h2>Preferências</h2></div><button type="button" class="icon-button" data-close aria-label="Fechar"><svg><use href="#i-close"/></svg></button></div><label>Como podemos chamar você?<input name="name" maxlength="80" placeholder="Seu nome"></label><p class="muted" id="accountEmail"></p><label>Novo PIN <span class="muted">(opcional)</span><input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="new-password" placeholder="4 dígitos"></label><label>Confirme o novo PIN<input name="confirmation" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"></label><p class="muted small">O PIN é próprio do Ponto. Alterá-lo não muda o PIN do Meu Celeiro.</p><p id="settingsMessage" class="form-error" role="alert"></p><div class="modal-actions"><button type="button" id="logoutButton" class="text-button">Sair da conta</button><button type="submit" class="button primary">Salvar preferências</button></div></form></dialog>
+  <dialog id="settingsDialog"><form id="settingsForm"><div class="modal-heading"><div><p class="eyebrow">DO SEU JEITO</p><h2>Preferências</h2></div><button type="button" class="icon-button" data-close aria-label="Fechar"><svg><use href="#i-close"/></svg></button></div><label>Como podemos chamar você?<input name="name" maxlength="80" placeholder="Seu nome"></label><p class="muted" id="accountEmail"></p><label>Novo PIN <span class="muted">(opcional)</span><input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="new-password" placeholder="4 dígitos"></label><label>Confirme o novo PIN<input name="confirmation" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"></label><p id="settingsMessage" class="form-error" role="alert"></p><div class="modal-actions"><button type="button" id="settingsInvite" class="text-button">Convidar alguém</button><button type="button" id="logoutButton" class="text-button">Sair da conta</button><button type="submit" class="button primary">Salvar preferências</button></div></form></dialog>
   <dialog id="importDialog"><form id="importForm"><div class="modal-heading"><h2>Trazer meus registros</h2><button type="button" class="icon-button" data-close aria-label="Fechar"><svg><use href="#i-close"/></svg></button></div><p class="muted">Escolha o <strong>db.json</strong> do programa antigo ou um backup do Ponto. Os registros atuais serão mantidos e duplicados serão ignorados.</p><label>Arquivo JSON<input type="file" name="file" accept=".json,application/json" required></label><p id="importMessage" role="status"></p><div class="modal-actions"><button type="button" class="button secondary" data-close>Cancelar</button><button class="button primary" type="submit">Importar registros</button></div></form></dialog>
   <dialog id="exportDialog"><div class="modal-heading"><h2>Levar meus registros</h2><button type="button" class="icon-button" data-close aria-label="Fechar"><svg><use href="#i-close"/></svg></button></div><p class="muted">O backup inclui todos os seus registros. A planilha usa o período selecionado.</p><div class="export-options"><button id="exportJson" class="button secondary"><svg><use href="#i-down"/></svg>Backup completo (.json)</button><button id="exportCsv" class="button secondary"><svg><use href="#i-down"/></svg>Planilha do período (.csv)</button></div></dialog>
+  <dialog id="inviteDialog"><form id="inviteForm"><div class="modal-heading"><h2>Convidar alguém</h2><button type="button" class="icon-button" data-close aria-label="Fechar"><svg><use href="#i-close"/></svg></button></div><p class="muted">Compartilhe um convite para a pessoa criar seu próprio Ponto com e-mail, nome e PIN. Cada pessoa vê apenas seus registros.</p><p class="muted small">Cada link vale por 7 dias e pode ser usado uma vez.</p><button type="submit" class="button primary full">Gerar convite</button><label id="inviteLinkLabel" hidden>Seu convite<input id="inviteLink" type="url" readonly></label><button type="button" class="button secondary full" id="copyInvite" hidden>Copiar link</button><p id="inviteMessage" role="status"></p></form></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
   <script type="module" src="./js/app.js"></script>
 </body>
